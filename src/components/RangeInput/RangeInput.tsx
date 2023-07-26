@@ -1,23 +1,19 @@
-import {  IconButton, InputAdornment, Typography } from '@mui/material'
+import {  IconButton, Input, InputAdornment, Typography } from '@mui/material'
 import { useState } from "react";
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
 import CloseIcon from '@mui/icons-material/Close';
 import { StyledForm, ModalBox, TopBar, StyledField, FormContainerBox } from './RangeInput.styles';
-import { RangeInputProps } from './RangeInput.types';
+import { RangeInputProps, finalValueType } from './RangeInput.types';
+import InputField from '../InputField/InputField';
 
 
-function RangeInput({setFinalValues}: RangeInputProps) {
+const RangeInput=({setFinalValues}: RangeInputProps) =>{
    
-
     const [firstRow, setFirstRow] = useState<string|number>("");
     const [secondRow, setSecondRow] = useState<string|number>("");
-    const [notes, setNotes] = useState("");
-  
+    const [notes, setNotes] = useState<string|number>("");
     const [firstRowError, setFirstRowError] = useState<string>("");
     const [secondRowError, setSecondRowError] = useState<string>("");
     const [notesError, setNotesError] = useState<string>("");
-    
 
     const handleFirstInc = ()=>{
       setFirstRow(prev=>Number(prev)+1)
@@ -33,64 +29,44 @@ function RangeInput({setFinalValues}: RangeInputProps) {
       setSecondRow(prev=>Number(prev)-1)
     }
   
-    const validateFirstRow = () => {
-      const value = Number(firstRow)
-      if (!value) {
-        setFirstRowError("This field is required");
-      } 
-      else if (isNaN(value)){
-        setFirstRowError("Enter a ")
-      }
-      else if (value <= 0) {
-        setFirstRowError("should be above 1");
-      } else if (value >= Number(secondRow)) {
-        setFirstRowError("Value should be below the value of Last Row");
-      } else {
-        setFirstRowError("");
-        return true
-      }
-    };
-  
-    const validateSecondRow = () => {
-        const value = Number(secondRow)
-      if (!value) {
-        setSecondRowError("This field is required");
-      } 
-      else if (isNaN(value)) {
-        setSecondRowError("Please enter a valid number");
-      } 
-      else if (value <= Number(firstRow)) {
-        setSecondRowError("Value should be above the value of First Row");
-      }
-       else if (value >= 600) {
-        setSecondRowError("Value should be below 600");
-      } 
+    const validateField = (name:string,value:string, setFieldError:(err:string)=>void, min?:number, max?:number, ) => {
+      
+      if(name==="notes"){
+        if (!value) {
+          setFieldError("This field is required");
+        } 
       else {
-        setSecondRowError("");
-        return true
+        setFieldError("");
+        return true;
       }
-    };
-  
-    const validateNotes = () => {
-        const value = notes
-      if (!value) {
-        setNotesError("This field is required");
-      } else {
-        setNotesError("");
-        return true
+      }
+      else{
+        const numValue = parseFloat(value)
+        if (!value) {
+          setFieldError("This field is required");
+        } else if (isNaN(numValue)) {
+          setFieldError("Please enter a valid number");
+        } else if (typeof min === "number" &&  numValue <= min) {
+          setFieldError(`Value should be above ${min==firstRow? "First Row": min}`);
+        } else if (typeof max === "number" && numValue >= max) {
+          setFieldError(`Value should be below ${max==secondRow? "Last Row": max}`);
+        } else {
+          setFieldError("");
+          return true;
+        }
+      return false;
       }
     };
 
-    const validateAll = ()=>{
-        
-        validateSecondRow()
-        validateNotes()
-        if(validateFirstRow() && validateSecondRow() && validateNotes()){
-           setFinalValues({first: firstRow, last: secondRow, note: notes})
-        }else{
-            
-        }
-    }
+    const validateAll = () => {
+      const isValidFirstRow = validateField("first",firstRow.toString(),  setFirstRowError, 0, Number(secondRow), );
+      const isValidSecondRow = validateField("second",secondRow.toString(), setSecondRowError,  Number(firstRow), 600, );
+      const isValidNotes = validateField("third", notes.toString(), setNotesError);
+  
+      if (isValidFirstRow && isValidSecondRow && isValidNotes) {
+        setFinalValues({ first: firstRow, last: secondRow, notes: notes });
+      }
+    };
     
   return (
     <ModalBox>
@@ -101,74 +77,20 @@ function RangeInput({setFinalValues}: RangeInputProps) {
         
         <FormContainerBox>
             <p style={{textAlign: "left"}}>Retrieve rows in range</p>
-
             <StyledForm action="" noValidate>
+
                 <label htmlFor="first" style={{textAlign: "left"}}>First Row</label>
-                <StyledField
-                type="number"
-                id="first"
-                placeholder="Enter first row"
-                InputProps={{
-                    endAdornment: (
-                    <InputAdornment position="end">
-                        <IconButton onClick={handleFirstInc}>
-                            <AddIcon/>
-                        </IconButton>
-                        <IconButton onClick={handleFirstDec}>
-                            <RemoveIcon/>
-                        </IconButton>
-                    </InputAdornment>),
-                    inputProps: {min: 0, max: secondRow}  
-                }} 
-                
-                value={firstRow.toString()}
-                onChange={(e) => setFirstRow(e.target.value)}
-                onBlur={validateAll}
-                error={!!firstRowError}
-                helperText={firstRowError}
-                />
-                
-                
-                
+                <InputField handleInc={handleFirstInc} handleDec={handleFirstDec} name="first"
+                validateAll={validateAll}  rowData={firstRow}  rowError={firstRowError}
+                setChangeData={setFirstRow} min={0} max={secondRow} placeholder="Enter first row"/>
 
                 <label htmlFor="last" style={{textAlign: "left"}}>Last Row</label>
-                <StyledField
-                type="number"
-                placeholder="Enter last row"
-                id="last"
-                InputProps={{
-                    endAdornment: (
-                    <InputAdornment position="end">
-                        <IconButton onClick={handleSecondInc}>
-                            <AddIcon />
-                        </IconButton>
-                        <IconButton onClick={handleSecondDec}>
-                            <RemoveIcon/>
-                        </IconButton>
-                    </InputAdornment>),
-                    inputProps: {min: firstRow, max: 600}  
-                }}
-                value={secondRow.toString()}
-                onChange={(e) => setSecondRow(e.target.value)}
-        onBlur={validateAll}
-        error={!!secondRowError}
-        helperText={secondRowError}
-                />
-                
-            
+                <InputField handleInc={handleSecondInc} handleDec={handleSecondDec} name="second"
+                validateAll={validateAll}  rowData={secondRow}  rowError={secondRowError}
+                setChangeData={setSecondRow} min={firstRow} max={600} placeholder="Enter second row"/>
 
-                <StyledField
-                type="text"
-                placeholder="Enter notes here"
-                
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                onBlur={validateAll}
-                error={!!notesError}
-                helperText={notesError}
-                
-                />
-                
+                <InputField rowData={notes}  rowError={notesError} name="notes" 
+                  placeholder="Enter second row" setChangeData={setNotes} validateAll={validateAll}/>
             </StyledForm>
             
             
